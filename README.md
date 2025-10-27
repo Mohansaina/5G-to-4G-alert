@@ -1,6 +1,6 @@
-# NetAlert AI
+# NetAlert AI - 5G to 4G Network Downgrade Monitor
 
-An Android app that detects when a user's mobile network drops from 5G to 4G (or lower) and sends a real-time push notification.
+An Android application that monitors your mobile network connection in real-time and notifies you when your premium 5G connection downgrades to 4G or lower speeds.
 
 ## Features
 
@@ -14,14 +14,19 @@ An Android app that detects when a user's mobile network drops from 5G to 4G (or
 ## Technical Implementation
 
 Uses modern Android APIs:
+
 - `ConnectivityManager.NetworkCallback` for real-time network monitoring
 - `NotificationManager` for notifications
 - `Room Database` for local data storage
-- Foreground service for continuous monitoring
+- `Foreground service` for continuous monitoring
 
 ## Screenshots
 
-_Dashboard showing current network status and history_
+![Dashboard](screenshots/dashboard.png)
+*Dashboard showing current network status and history*
+
+![Notification](screenshots/notification.png)
+*Notification when network downgrades from 5G to 4G*
 
 ## Project Structure
 
@@ -64,7 +69,7 @@ NetAlertAI/
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Mohansaina/5G-to-4G-alert.git
    ```
 
 2. Open in Android Studio:
@@ -107,28 +112,33 @@ graph TB
 
 ## Documentation
 
-- [BUILD_AND_RUN.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/BUILD_AND_RUN.md) - Detailed build and run instructions
-- [IMPLEMENTATION_GUIDE.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/IMPLEMENTATION_GUIDE.md) - Complete implementation guide
-- [DEVELOPMENT_SETUP.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/DEVELOPMENT_SETUP.md) - Development environment setup
-- [ARCHITECTURE.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/ARCHITECTURE.md) - Architecture diagram
-- [ROADMAP.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/ROADMAP.md) - Feature roadmap
-- [PROJECT_SUMMARY.md](file:///c%3A/Users/svssw/Downloads/5g4galert/NetAlertAI/PROJECT_SUMMARY.md) - Complete project summary
+- [BUILD_AND_RUN.md](BUILD_AND_RUN.md) - Detailed build and run instructions
+- [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) - Complete implementation guide
+- [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) - Development environment setup
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture diagram
+- [ROADMAP.md](ROADMAP.md) - Feature roadmap
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Complete project summary
 
 ## Core Components
 
 ### NetworkMonitorService
-A foreground service that continuously monitors network changes using ConnectivityManager.NetworkCallback.
+
+A foreground service that continuously monitors network changes using `ConnectivityManager.NetworkCallback`.
 
 ### NetworkChangeReceiver
+
 A broadcast receiver that listens for connectivity changes (alternative approach).
 
 ### NetworkHistory
+
 A data class representing a network change event.
 
 ### NetworkHistoryAdapter
+
 A RecyclerView adapter for displaying network change history.
 
 ### Room Database
+
 Local storage for network history using Android Room persistence library.
 
 ## Future Enhancements

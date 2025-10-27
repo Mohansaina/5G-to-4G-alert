@@ -1,13 +1,12 @@
 package com.netalert.ai;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.widget.Button;
@@ -17,7 +16,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -77,7 +75,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void requestPermissions() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        // Request notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
             }
@@ -86,7 +85,12 @@ public class MainActivity extends AppCompatActivity {
     
     private void startNetworkMonitoringService() {
         Intent serviceIntent = new Intent(this, NetworkMonitorService.class);
-        startService(serviceIntent);
+        // Start service in foreground
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
     
@@ -97,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
             networkMonitorService = binder.getService();
             isServiceBound = true;
             // Update UI with current network type
-            updateNetworkUI(networkMonitorService.getCurrentNetworkType());
+            if (networkMonitorService != null) {
+                updateNetworkUI(networkMonitorService.getCurrentNetworkType());
+            }
         }
 
         @Override
@@ -116,25 +122,31 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void updateNetworkUI(String networkType) {
-        currentNetworkText.setText(networkType);
-        
-        // Update icon based on network type
-        int iconResource = R.drawable.ic_network_5g; // Default to 5G
-        switch (networkType) {
-            case "5G":
-                iconResource = R.drawable.ic_network_5g;
-                break;
-            case "4G":
-                iconResource = R.drawable.ic_network_4g;
-                break;
-            case "WiFi":
-                iconResource = R.drawable.ic_network_5g; // Using 5G icon for WiFi as placeholder
-                break;
-            default:
-                iconResource = R.drawable.ic_network_4g; // Default to 4G for other types
-                break;
+        if (currentNetworkText != null) {
+            currentNetworkText.setText(networkType != null ? networkType : "Unknown");
         }
-        networkIcon.setImageResource(iconResource);
+        
+        if (networkIcon != null) {
+            // Update icon based on network type
+            int iconResource = R.drawable.ic_network_4g; // Default to 4G
+            if (networkType != null) {
+                switch (networkType) {
+                    case "5G":
+                        iconResource = R.drawable.ic_network_5g;
+                        break;
+                    case "4G":
+                        iconResource = R.drawable.ic_network_4g;
+                        break;
+                    case "WiFi":
+                        iconResource = R.drawable.ic_network_5g; // Using 5G icon for WiFi as placeholder
+                        break;
+                    default:
+                        iconResource = R.drawable.ic_network_4g; // Default to 4G for other types
+                        break;
+                }
+            }
+            networkIcon.setImageResource(iconResource);
+        }
     }
     
     private void exportLogs() {
@@ -153,32 +165,11 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
     
-    // Broadcast receiver for network changes
-    private BroadcastReceiver networkChangeReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String networkType = intent.getStringExtra("network_type");
-            if (networkType != null) {
-                updateNetworkUI(networkType);
-                // Reload history as it might have changed
-                loadNetworkHistory();
-            }
-        }
-    };
-    
     @Override
     protected void onResume() {
         super.onResume();
-        // Register receiver for network changes
-        IntentFilter filter = new IntentFilter("NETWORK_CHANGED");
-        registerReceiver(networkChangeReceiver, filter);
-    }
-    
-    @Override
-    protected void onPause() {
-        super.onPause();
-        // Unregister receiver
-        unregisterReceiver(networkChangeReceiver);
+        // Reload history when returning to the app
+        loadNetworkHistory();
     }
     
     @Override

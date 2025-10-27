@@ -28,9 +28,11 @@ public class NetworkMonitorService extends Service {
     private static final String TAG = "NetworkMonitorService";
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "NetworkMonitorChannel";
+    private static final int DOWNGRADE_NOTIFICATION_ID = 2;
     
     private ConnectivityManager.NetworkCallback networkCallback;
     private String currentNetworkType = "Unknown";
+    private String previousNetworkType = "Unknown";
     private NotificationManager notificationManager;
     private NetworkHistoryDatabase database;
 
@@ -106,8 +108,15 @@ public class NetworkMonitorService extends Service {
                 String newNetworkType = getNetworkType(networkCapabilities);
                 Log.d(TAG, "Network capabilities changed. New type: " + newNetworkType);
                 
-                // Update current network type
+                // Store previous network type before updating
+                previousNetworkType = currentNetworkType;
                 currentNetworkType = newNetworkType;
+                
+                // Check if it's a downgrade from 5G to 4G or lower
+                if (isNetworkDowngrade(previousNetworkType, currentNetworkType)) {
+                    sendDowngradeNotification(previousNetworkType, currentNetworkType);
+                    saveNetworkChange(previousNetworkType, currentNetworkType);
+                }
                 
                 // Notify MainActivity about the change
                 Intent intent = new Intent("NETWORK_CHANGED");
@@ -117,6 +126,12 @@ public class NetworkMonitorService extends Service {
         };
 
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+    }
+
+    private boolean isNetworkDowngrade(String oldNetwork, String newNetwork) {
+        // Check if we're downgrading from 5G to 4G or lower
+        return "5G".equals(oldNetwork) && 
+               ("4G".equals(newNetwork) || "3G".equals(newNetwork) || "2G".equals(newNetwork) || "Unknown".equals(newNetwork));
     }
 
     private String getNetworkType(NetworkCapabilities capabilities) {
@@ -136,6 +151,31 @@ public class NetworkMonitorService extends Service {
             }
         }
         return "Unknown";
+    }
+
+    private void sendDowngradeNotification(String oldNetwork, String newNetwork) {
+        String title = getString(R.string.network_downgrade_notification_title);
+        String text = getString(R.string.network_downgrade_notification_text, oldNetwork, newNetwork);
+        
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+        notificationManager.notify(DOWNGRADE_NOTIFICATION_ID, builder.build());
+    }
+
+    private void saveNetworkChange(String oldNetwork, String newNetwork) {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        Log.d(TAG, "Network changed at " + timestamp + " from " + oldNetwork + " to " + newNetwork);
+        
+        // Save to Room database
+        NetworkHistoryEntity networkHistory = new NetworkHistoryEntity(timestamp, oldNetwork, newNetwork);
+        new Thread(() -> {
+            database.networkHistoryDao().insert(networkHistory);
+        }).start();
     }
 
     public String getCurrentNetworkType() {
