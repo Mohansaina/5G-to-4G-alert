@@ -35,6 +35,7 @@ public class NetworkMonitorService extends Service {
     private String previousNetworkType = "Unknown";
     private NotificationManager notificationManager;
     private NetworkHistoryDatabase database;
+    private boolean hasNotifiedFor4G = false;
 
     @Override
     public void onCreate() {
@@ -117,6 +118,15 @@ public class NetworkMonitorService extends Service {
                     sendDowngradeNotification(previousNetworkType, currentNetworkType);
                     saveNetworkChange(previousNetworkType, currentNetworkType);
                 }
+                // Also notify if currently on 4G
+                else if ("4G".equals(currentNetworkType) && !hasNotifiedFor4G) {
+                    send4GNotification();
+                    hasNotifiedFor4G = true;
+                }
+                // Reset 4G notification flag when network changes
+                else if (!"4G".equals(currentNetworkType)) {
+                    hasNotifiedFor4G = false;
+                }
                 
                 // Notify MainActivity about the change
                 Intent intent = new Intent("NETWORK_CHANGED");
@@ -165,6 +175,20 @@ public class NetworkMonitorService extends Service {
                 .setAutoCancel(true);
 
         notificationManager.notify(DOWNGRADE_NOTIFICATION_ID, builder.build());
+    }
+    
+    private void send4GNotification() {
+        String title = "Using 4G Network";
+        String text = "Your device is currently connected to a 4G network";
+        
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setAutoCancel(true);
+
+        notificationManager.notify(DOWNGRADE_NOTIFICATION_ID + 1, builder.build());
     }
 
     private void saveNetworkChange(String oldNetwork, String newNetwork) {
